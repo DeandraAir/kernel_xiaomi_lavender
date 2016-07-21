@@ -114,7 +114,7 @@ static inline unsigned long perf_aux_size(struct ring_buffer *rb)
 	return rb->aux_nr_pages << PAGE_SHIFT;
 }
 
-#define __DEFINE_OUTPUT_COPY_BODY(memcpy_func)				\
+#define __DEFINE_OUTPUT_COPY_BODY(advance_buf, memcpy_func, ...)	\
 {									\
 	unsigned long size, written;					\
 									\
@@ -145,12 +145,16 @@ static inline unsigned long perf_aux_size(struct ring_buffer *rb)
 static inline unsigned long						\
 func_name(struct perf_output_handle *handle,				\
 	  const void *buf, unsigned long len)				\
-__DEFINE_OUTPUT_COPY_BODY(memcpy_func)
+__DEFINE_OUTPUT_COPY_BODY(true, memcpy_func, handle->addr, buf, size)
 
 static inline unsigned long
 __output_custom(struct perf_output_handle *handle, perf_copy_f copy_func,
 		const void *buf, unsigned long len)
-__DEFINE_OUTPUT_COPY_BODY(copy_func)]
+{
+	unsigned long orig_len = len;
+	__DEFINE_OUTPUT_COPY_BODY(false, copy_func, handle->addr, buf,
+				  orig_len - len, size)
+}
 
 static inline unsigned long
 memcpy_common(void *dst, const void *src, unsigned long n)
